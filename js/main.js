@@ -203,6 +203,63 @@ const initActiveNav = () => {
 };
 
 /* ===============================
+   9. See More / See Less Projects
+=============================== */
+const initSeeMoreProjects = () => {
+  const portfolioGrid = document.getElementById('portfolio-grid');
+  const seeMoreBtn = document.getElementById('see-more-btn');
+
+  if (!portfolioGrid || !seeMoreBtn) return;
+
+  const portfolioItems = Array.from(portfolioGrid.children);
+  let showingAll = false; // track toggle state
+
+  // Initially show only 3
+  const initialCount = 3;
+  portfolioItems.forEach((item, index) => {
+    if (index >= initialCount) item.style.display = 'none';
+  });
+
+  seeMoreBtn.addEventListener('click', () => {
+    if (!showingAll) {
+      // Show all projects
+      portfolioItems.forEach(item => item.style.display = 'block');
+      seeMoreBtn.innerHTML = 'See Less Projects <i class="fas fa-arrow-up ms-2"></i>';
+      showingAll = true;
+    } else {
+      // Show only first 3
+      portfolioItems.forEach((item, index) => {
+        item.style.display = index < initialCount ? 'block' : 'none';
+      });
+      seeMoreBtn.innerHTML = 'See More Projects <i class="fas fa-arrow-down ms-2"></i>';
+      showingAll = false;
+    }
+  });
+};
+
+/* ===============================
+   Back to Top Button
+=============================== */
+const initBackToTop = () => {
+  const backToTopBtn = document.getElementById('back-to-top');
+
+  window.addEventListener('scroll', () => {
+    if (window.scrollY > 300) {
+      backToTopBtn.style.display = 'flex';
+    } else {
+      backToTopBtn.style.display = 'none';
+    }
+  });
+
+  backToTopBtn.addEventListener('click', () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  });
+};
+
+/* ===============================
    Initialize Everything
 =============================== */
 document.addEventListener('DOMContentLoaded', () => {
@@ -214,4 +271,6 @@ document.addEventListener('DOMContentLoaded', () => {
   initContactForm();
   initNavbarScroll();
   initActiveNav();
+  initSeeMoreProjects();
+  initBackToTop();
 });
