@@ -1,78 +1,118 @@
 /* ===============================
    1. Typewriter Effect
 =============================== */
-const textElement = document.getElementById('typewriter');
-const phrases = ["a Web Developer.", "a Designer.", "a YouTuber.", "a Vlogger."];
+const initTypewriter = () => {
+  const textElement = document.getElementById('typewriter');
+  if (!textElement) return;
 
-let phraseIndex = 0;
-let charIndex = 0;
-let isDeleting = false;
+  const phrases = ["a Web Developer.", "a Designer.", "a YouTuber.", "a Vlogger."];
+  let phraseIndex = 0;
+  let charIndex = 0;
+  let isDeleting = false;
 
-function type() {
-  const currentPhrase = phrases[phraseIndex];
-  let speed = isDeleting ? 60 : 120;
+  function type() {
+    const currentPhrase = phrases[phraseIndex];
+    // Added a tiny bit of randomness to make it feel more "human"
+    let speed = isDeleting ? 50 : 100 + Math.random() * 50;
 
-  if (isDeleting) {
-    charIndex--;
     textElement.textContent = currentPhrase.substring(0, charIndex);
-  } else {
-    charIndex++;
-    textElement.textContent = currentPhrase.substring(0, charIndex);
+
+    if (isDeleting) {
+      charIndex--;
+    } else {
+      charIndex++;
+    }
+
+    if (!isDeleting && charIndex === currentPhrase.length + 1) {
+      speed = 2000; // Pause at end of phrase
+      isDeleting = true;
+    } else if (isDeleting && charIndex === 0) {
+      isDeleting = false;
+      phraseIndex = (phraseIndex + 1) % phrases.length;
+      speed = 500;
+    }
+
+    setTimeout(type, speed);
   }
-
-  if (!isDeleting && charIndex === currentPhrase.length) {
-    speed = 2000;
-    isDeleting = true;
-  } else if (isDeleting && charIndex === 0) {
-    isDeleting = false;
-    phraseIndex = (phraseIndex + 1) % phrases.length;
-    speed = 500;
-  }
-
-  setTimeout(type, speed);
-}
-
-/* ===============================
-   2. Portfolio Filter
-=============================== */
-const initPortfolioFilter = () => {
-  const filterButtons = document.querySelectorAll('.filter-btn');
-  const portfolioItems = document.querySelectorAll('.portfolio-item');
-
-  filterButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
-      filterButtons.forEach(button => {
-        button.classList.remove('active', 'btn-primary');
-        button.classList.add('btn-outline-primary');
-      });
-      btn.classList.add('active');
-      btn.classList.remove('btn-primary');
-
-      const filter = btn.getAttribute('data-filter');
-
-      portfolioItems.forEach(item => {
-        if (filter === 'all' || item.dataset.category === filter) {
-          item.style.display = 'block';
-          item.style.animation = 'fadeIn 0.5s ease forwards';
-        } else {
-          item.style.animation = 'fadeOut 0.5s ease forwards';
-          setTimeout(() => item.style.display = 'none', 500);
-        }
-      });
-    });
-  });
+  type();
 };
 
 /* ===============================
-   3. Dark Mode Toggle
+   2. Integrated Portfolio (Filter + Pagination)
+=============================== */
+const initPortfolio = () => {
+  const filterButtons = document.querySelectorAll('.filter-btn');
+  const portfolioItems = document.querySelectorAll('.portfolio-item');
+  const seeMoreBtn = document.getElementById('see-more-btn');
+  const initialCount = 3;
+  let currentFilter = 'all';
+  let showingAll = false;
+
+  const updateGallery = () => {
+    let visibleCount = 0;
+
+    portfolioItems.forEach((item) => {
+      const isMatch = currentFilter === 'all' || item.dataset.category === currentFilter;
+
+      if (isMatch) {
+        // If we aren't "showing all", only show the first 3 matches
+        if (showingAll || visibleCount < initialCount) {
+          item.style.display = 'block';
+          item.style.animation = 'fadeIn 0.5s ease forwards';
+        } else {
+          item.style.display = 'none';
+        }
+        visibleCount++;
+      } else {
+        item.style.display = 'none';
+      }
+    });
+
+    // Hide "See More" button if we are filtering or there are no more items to show
+    if (seeMoreBtn) {
+      seeMoreBtn.style.display = (currentFilter === 'all' && visibleCount > initialCount) ? 'inline-block' : 'none';
+    }
+  };
+
+  filterButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      filterButtons.forEach(b => b.classList.remove('active', 'btn-primary'));
+      filterButtons.forEach(b => b.classList.add('btn-outline-primary'));
+
+      btn.classList.add('active', 'btn-primary');
+      btn.classList.remove('btn-outline-primary');
+
+      currentFilter = btn.getAttribute('data-filter');
+      showingAll = false; // Reset toggle on filter change
+      if (seeMoreBtn) seeMoreBtn.innerHTML = 'See More Projects <i class="fas fa-arrow-down ms-2"></i>';
+      updateGallery();
+    });
+  });
+
+  if (seeMoreBtn) {
+    seeMoreBtn.addEventListener('click', () => {
+      showingAll = !showingAll;
+      seeMoreBtn.innerHTML = showingAll ?
+        'See Less <i class="fas fa-arrow-up ms-2"></i>' :
+        'See More Projects <i class="fas fa-arrow-down ms-2"></i>';
+      updateGallery();
+    });
+  }
+
+  updateGallery();
+};
+
+/* ===============================
+   3. Theme & Scroll Effects
 =============================== */
 const initDarkMode = () => {
   const themeBtn = document.getElementById('theme-toggle');
   const themeIcon = document.getElementById('theme-icon');
+  if (!themeBtn) return;
 
   const setTheme = (theme) => {
     document.documentElement.setAttribute('data-bs-theme', theme);
-    themeIcon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+    if (themeIcon) themeIcon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
     localStorage.setItem('theme', theme);
   };
 
@@ -81,196 +121,89 @@ const initDarkMode = () => {
     setTheme(currentTheme === 'light' ? 'dark' : 'light');
   });
 
-  const savedTheme = localStorage.getItem('theme') || 'light';
-  setTheme(savedTheme);
+  setTheme(localStorage.getItem('theme') || 'light');
 };
 
-/* ===============================
-   4. Scroll Reveal
-=============================== */
-const initScrollReveal = () => {
-  const observer = new IntersectionObserver(entries => {
+const initScrollEffects = () => {
+  // Intersection Observer for Section Reveal
+  const revealObserver = new IntersectionObserver(entries => {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
         entry.target.classList.add('show');
-        observer.unobserve(entry.target);
+        revealObserver.unobserve(entry.target);
       }
     });
   }, { threshold: 0.15 });
 
   document.querySelectorAll('section').forEach(section => {
     section.classList.add('reveal-hidden');
-    observer.observe(section);
+    revealObserver.observe(section);
   });
-};
 
-/* ===============================
-   5. Smooth Scroll
-=============================== */
-const initSmoothScroll = () => {
-  const navbar = document.querySelector('.navbar');
-  const navHeight = navbar ? navbar.offsetHeight : 70;
-
-  document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-    anchor.addEventListener('click', e => {
-      e.preventDefault();
-      const target = document.querySelector(anchor.getAttribute('href'));
-      if (target) {
-        window.scrollTo({
-          top: target.offsetTop - navHeight,
-          behavior: 'smooth'
-        });
-      }
-    });
-  });
-};
-
-/* ===============================
-   6. Contact Form
-=============================== */
-const initContactForm = () => {
-  const contactForm = document.getElementById('contact-form');
-  if (!contactForm) return;
-
-  contactForm.addEventListener('submit', e => {
-    e.preventDefault();
-    const submitBtn = contactForm.querySelector('button[type="submit"]');
-    const originalText = submitBtn.innerHTML;
-
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Sending...';
-
-    // Simulated API call
-    setTimeout(() => {
-      submitBtn.classList.remove('btn-primary');
-      submitBtn.classList.add('btn-success');
-      submitBtn.innerHTML = '<i class="fas fa-check me-2"></i>Message Sent!';
-
-      contactForm.reset();
-
-      setTimeout(() => {
-        submitBtn.disabled = false;
-        submitBtn.classList.remove('btn-success');
-        submitBtn.classList.add('btn-primary');
-        submitBtn.innerHTML = originalText;
-      }, 3000);
-    }, 1500);
-  });
-};
-
-/* ===============================
-   7. Navbar Scroll Shadow
-=============================== */
-const initNavbarScroll = () => {
-  const navbar = document.querySelector('.navbar');
-  if (!navbar) return;
-
-  window.addEventListener('scroll', () => {
-    if (window.scrollY > 50) navbar.classList.add('scrolled');
-    else navbar.classList.remove('scrolled');
-  });
-};
-
-/* ===============================
-   8. Active Navbar Link on Scroll
-=============================== */
-const initActiveNav = () => {
+  // Active Nav Link & Navbar Shadow
   const sections = document.querySelectorAll('section[id]');
   const navLinks = document.querySelectorAll('.nav-link');
-
   const navbar = document.querySelector('.navbar');
-  const navHeight = navbar ? navbar.offsetHeight : 70;
 
   window.addEventListener('scroll', () => {
-    const scrollPos = window.scrollY + navHeight + 5; // Add small offset
+    // Navbar Shadow
+    if (window.scrollY > 50) navbar.classList.add('scrolled');
+    else navbar.classList.remove('scrolled');
 
+    // Active Link
+    let current = "";
     sections.forEach(section => {
-      const top = section.offsetTop;
-      const bottom = top + section.offsetHeight;
-
-      const id = section.getAttribute('id');
-
-      if (scrollPos >= top && scrollPos <= bottom) {
-        navLinks.forEach(link => {
-          link.classList.remove('active');
-          if (link.getAttribute('href') === `#${id}`) {
-            link.classList.add('active');
-          }
-        });
+      const sectionTop = section.offsetTop;
+      if (window.scrollY >= sectionTop - 100) {
+        current = section.getAttribute('id');
       }
     });
-  });
-};
 
-/* ===============================
-   9. See More / See Less Projects
-=============================== */
-const initSeeMoreProjects = () => {
-  const portfolioGrid = document.getElementById('portfolio-grid');
-  const seeMoreBtn = document.getElementById('see-more-btn');
-
-  if (!portfolioGrid || !seeMoreBtn) return;
-
-  const portfolioItems = Array.from(portfolioGrid.children);
-  let showingAll = false; // track toggle state
-
-  // Initially show only 3
-  const initialCount = 3;
-  portfolioItems.forEach((item, index) => {
-    if (index >= initialCount) item.style.display = 'none';
-  });
-
-  seeMoreBtn.addEventListener('click', () => {
-    if (!showingAll) {
-      // Show all projects
-      portfolioItems.forEach(item => item.style.display = 'block');
-      seeMoreBtn.innerHTML = 'See Less Projects <i class="fas fa-arrow-up ms-2"></i>';
-      showingAll = true;
-    } else {
-      // Show only first 3
-      portfolioItems.forEach((item, index) => {
-        item.style.display = index < initialCount ? 'block' : 'none';
-      });
-      seeMoreBtn.innerHTML = 'See More Projects <i class="fas fa-arrow-down ms-2"></i>';
-      showingAll = false;
-    }
-  });
-};
-
-/* ===============================
-   Back to Top Button
-=============================== */
-const initBackToTop = () => {
-  const backToTopBtn = document.getElementById('back-to-top');
-
-  window.addEventListener('scroll', () => {
-    if (window.scrollY > 300) {
-      backToTopBtn.style.display = 'flex';
-    } else {
-      backToTopBtn.style.display = 'none';
-    }
-  });
-
-  backToTopBtn.addEventListener('click', () => {
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth'
+    navLinks.forEach(link => {
+      link.classList.remove('active');
+      if (link.getAttribute('href').includes(current)) {
+        link.classList.add('active');
+      }
     });
-  });
+  }, { passive: true });
 };
 
 /* ===============================
-   Initialize Everything
+   4. Contact & Top Button
+=============================== */
+const initUIComponents = () => {
+  // Back to Top
+  const backBtn = document.getElementById('back-to-top');
+  if (backBtn) {
+    window.addEventListener('scroll', () => {
+      backBtn.style.display = window.scrollY > 300 ? 'flex' : 'none';
+    }, { passive: true });
+
+    backBtn.addEventListener('click', () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }
+
+  // FIX: Form Submission for PHP
+  // We removed e.preventDefault() so the browser actually sends the POST data
+  const contactForm = document.getElementById('contact-form');
+  if (contactForm) {
+    contactForm.addEventListener('submit', function () {
+      const btn = this.querySelector('button[type="submit"]');
+      // Show loading state while the page prepares to refresh/redirect
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Sending...';
+      btn.classList.add('disabled');
+    });
+  }
+};
+
+/* ===============================
+   Initialize
 =============================== */
 document.addEventListener('DOMContentLoaded', () => {
-  type();
-  initPortfolioFilter();
+  initTypewriter();
+  initPortfolio();
   initDarkMode();
-  initScrollReveal();
-  initSmoothScroll();
-  initContactForm();
-  initNavbarScroll();
-  initActiveNav();
-  initSeeMoreProjects();
-  initBackToTop();
+  initScrollEffects();
+  initUIComponents();
 });

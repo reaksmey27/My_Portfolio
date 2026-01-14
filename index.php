@@ -1,3 +1,44 @@
+<?php
+// 1. Database Connection
+$conn = new mysqli("localhost", "root", "", "portfolio");
+
+if ($conn->connect_error) {
+  die("Connection failed: " . $conn->connect_error);
+}
+
+$status = "";
+
+// 2. Handle the INSERT Logic
+if (isset($_POST['send_msg'])) {
+  $name    = $_POST['name'];
+  $email   = $_POST['email'];
+  $subject = $_POST['subject'];
+  $message = $_POST['message'];
+
+  if (!empty($name) && !empty($email) && !empty($message)) {
+    $stmt = $conn->prepare("INSERT INTO messages (name, email, subject, message) VALUES (?, ?, ?, ?)");
+    $stmt->bind_param("ssss", $name, $email, $subject, $message);
+
+    if ($stmt->execute()) {
+      $stmt->close();
+      // Removed #contact so it doesn't force a scroll
+      header("Location: index.php?status=success");
+      exit();
+    } else {
+      header("Location: index.php?status=error");
+      exit();
+    }
+    $stmt->close();
+  }
+}
+
+// Check for the status in the URL (since we are now redirecting)
+$display_status = $_GET['status'] ?? $status;
+
+// 3. Handle the LIST Logic (Fetch all records)
+$all_messages = $conn->query("SELECT * FROM messages ORDER BY id DESC");
+?>
+
 <!DOCTYPE html>
 <html lang="en" data-bs-theme="light">
 
@@ -138,28 +179,28 @@
       <div class="row g-4 justify-content-center">
 
         <div class="col-6 col-md-3 col-lg-2">
-          <div class="skill-card bg-body p-4 text-center shadow-sm rounded-4">
+          <div class="skill-card bg-body p-4 text-center shadow-sm rounded-4 h-100">
             <i class="fab fa-html5 fa-3x text-danger mb-3"></i>
             <p class="mb-0 fw-bold text-body">HTML5</p>
           </div>
         </div>
 
         <div class="col-6 col-md-3 col-lg-2">
-          <div class="skill-card bg-body p-4 text-center shadow-sm rounded-4">
+          <div class="skill-card bg-body p-4 text-center shadow-sm rounded-4 h-100">
             <i class="fab fa-css3-alt fa-3x text-primary mb-3"></i>
             <p class="mb-0 fw-bold text-body">CSS3</p>
           </div>
         </div>
 
         <div class="col-6 col-md-3 col-lg-2">
-          <div class="skill-card bg-body p-4 text-center shadow-sm rounded-4">
+          <div class="skill-card bg-body p-4 text-center shadow-sm rounded-4 h-100">
             <i class="fab fa-js fa-3x text-warning mb-3"></i>
             <p class="mb-0 fw-bold text-body">JavaScript</p>
           </div>
         </div>
 
         <div class="col-6 col-md-3 col-lg-2">
-          <div class="skill-card bg-body p-4 text-center shadow-sm rounded-4">
+          <div class="skill-card bg-body p-4 text-center shadow-sm rounded-4 h-100">
             <i class="fab fa-figma fa-3x text-danger mb-3"></i>
             <p class="mb-0 fw-bold text-body">Figma</p>
           </div>
@@ -277,6 +318,31 @@
             </div>
           </div>
         </div>
+
+        <?php if ($projects->num_rows > 0): ?>
+          <?php while ($p = $projects->fetch_assoc()): ?>
+            <div class="col-md-6 col-lg-4 portfolio-item" data-category="<?= htmlspecialchars($p['category']) ?>">
+              <div class="card h-100 border-0 shadow-sm overflow-hidden project-card">
+                <div class="position-relative">
+                  <img src="uploads/<?= $p['image'] ?>" class="card-img-top" alt="<?= htmlspecialchars($p['title']) ?>" style="height: 250px; object-fit: cover;">
+                  <div class="project-overlay d-flex align-items-center justify-content-center">
+                    <?php if ($p['link']): ?>
+                      <a href="<?= htmlspecialchars($p['link']) ?>" target="_blank" class="btn btn-light rounded-circle mx-2"><i class="fas fa-link"></i></a>
+                    <?php endif; ?>
+                  </div>
+                </div>
+                <div class="card-body p-4">
+                  <span class="badge bg-primary-subtle text-primary mb-2"><?= strtoupper(htmlspecialchars($p['category'])) ?></span>
+                  <h5 class="card-title fw-bold"><?= htmlspecialchars($p['title']) ?></h5>
+                  <p class="card-text text-secondary small"><?= htmlspecialchars($p['description']) ?></p>
+                </div>
+              </div>
+            </div>
+          <?php endwhile; ?>
+        <?php else: ?>
+
+          <div class="col-12 text-center text-muted">No projects found. Visit admin to add some!</div>
+        <?php endif; ?>
       </div>
       <div class="text-center mt-5">
         <button id="see-more-btn" class="btn btn-outline-primary rounded-pill px-4 py-2">
@@ -286,6 +352,7 @@
     </div>
   </section>
 
+  <!-- CONTACT -->
   <section id="contact" class="py-5 bg-body-tertiary">
     <div class="container py-5">
       <div class="text-center mb-5">
@@ -298,7 +365,6 @@
         <div class="col-lg-5">
           <div class="card border-0 shadow-sm p-4 h-100">
             <h4 class="fw-bold mb-4">Contact Information</h4>
-
             <div class="d-flex align-items-center mb-4">
               <div class="bg-primary-subtle p-3 rounded-3 me-3">
                 <i class="fas fa-envelope text-primary"></i>
@@ -308,7 +374,6 @@
                 <h6 class="mb-0">hello@reaksmey.com</h6>
               </div>
             </div>
-
             <div class="d-flex align-items-center mb-4">
               <div class="bg-primary-subtle p-3 rounded-3 me-3">
                 <i class="fas fa-phone text-primary"></i>
@@ -318,63 +383,34 @@
                 <h6 class="mb-0">+855 12 345 678</h6>
               </div>
             </div>
-
-            <div class="d-flex align-items-center mb-4">
-              <div class="bg-primary-subtle p-3 rounded-3 me-3">
-                <i class="fas fa-location-dot text-primary"></i>
-              </div>
-              <div>
-                <p class="text-secondary mb-0 small">Location</p>
-                <h6 class="mb-0">Phnom Penh, Cambodia</h6>
-              </div>
-            </div>
             <div class="follow-journey mt-4 pt-3 border-top">
               <h6 class="fw-bold mb-3">Follow My Journey</h6>
               <div class="d-flex gap-3 mb-3">
                 <a href="#" class="social-icon"><i class="fab fa-github"></i></a>
                 <a href="#" class="social-icon"><i class="fab fa-linkedin-in"></i></a>
                 <a href="#" class="social-icon"><i class="fab fa-youtube"></i></a>
-                <a href="#" class="social-icon"><i class="fab fa-instagram"></i></a>
               </div>
             </div>
           </div>
         </div>
 
-        <div class="col-lg-7">
-          <form id="contact-form" class="card border-0 shadow-sm p-4 bg-body">
-            <div class="row g-3">
-
-              <div class="col-md-6">
-                <label class="form-label small fw-bold text-body">Full Name</label>
-                <input type="text" class="form-control bg-body text-body border-secondary py-2"
-                  placeholder="Enter Your Name" required>
-              </div>
-
-              <div class="col-md-6">
-                <label class="form-label small fw-bold text-body">Email Address</label>
-                <input type="email" class="form-control bg-body text-body border-secondary py-2"
-                  placeholder="Enter Your Email" required>
-              </div>
-
-              <div class="col-12">
-                <label class="form-label small fw-bold text-body">Subject</label>
-                <input type="text" class="form-control bg-body text-body border-secondary py-2"
-                  placeholder="Enter Your Subject">
-              </div>
-
-              <div class="col-12">
-                <label class="form-label small fw-bold text-body">Message</label>
-                <textarea class="form-control bg-body text-body border-secondary py-2" rows="5"
-                  placeholder="Say Something ..." required></textarea>
-              </div>
-
-              <div class="col-12 mt-4">
-                <button type="submit" class="btn btn-primary w-100 py-3 rounded-pill fw-bold shadow-lg">
-                  Send Message <i class="fas fa-paper-plane ms-2"></i>
-                </button>
-              </div>
-
+        <div class="col-lg-7 mx-auto">
+          <?php if ($display_status == "success"): ?>
+            <div class="alert alert-success border-0 shadow-sm mb-4">
+              Record inserted successfully!
             </div>
+          <?php elseif ($display_status == "error"): ?>
+            <div class="alert alert-danger border-0 shadow-sm mb-4">
+              Error: Could not save data.
+            </div>
+          <?php endif; ?>
+
+          <form method="POST" action="" class="card p-4 shadow-sm">
+            <input type="text" name="name" placeholder="Full Name" required class="form-control mb-2">
+            <input type="email" name="email" placeholder="Email Address" required class="form-control mb-2">
+            <input type="text" name="subject" placeholder="Subject" class="form-control mb-2">
+            <textarea name="message" placeholder="Your Message" required class="form-control mb-2" rows="4"></textarea>
+            <button type="submit" name="send_msg" class="btn btn-primary w-100">Send Message</button>
           </form>
         </div>
       </div>
@@ -429,16 +465,16 @@
             © 2026 <span class="text-white fw-bold">REAKSMEY SAN</span>. All rights reserved.
             Built with <i class="fas fa-heart text-danger mx-1"></i> and Bootstrap 5.
           </p>
+          <a href="admin.php" class="text-muted" style="text-decoration:none;"><i class="fas fa-lock"></i></a>
         </div>
       </div>
     </div>
   </footer>
 
   <!-- Back to Top Button -->
-<button id="back-to-top" class="btn btn-primary rounded-circle shadow-lg">
-  <i class="fas fa-chevron-up"></i>
-</button>
-
+  <button id="back-to-top" class="btn btn-primary rounded-circle shadow-lg">
+    <i class="fas fa-chevron-up"></i>
+  </button>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script src="js/main.js"></script>
